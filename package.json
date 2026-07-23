@@ -1,0 +1,44 @@
+{
+  "name": "zhouli-translator",
+  "version": "0.1.0",
+  "description": "提供问礼与释礼的周礼体双向翻译网站与 Skill 包。",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aspirin0000/zhouli-translator.git"
+  },
+  "homepage": "https://hehuzhouli.com",
+  "bugs": {
+    "url": "https://github.com/Aspirin0000/zhouli-translator/issues"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test scripts/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "star-history": "node scripts/build-star-history.mjs",
+    "public:audit": "node scripts/public-audit.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.19.11",
+    "next": "16.2.9",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3",
+    "wrangler": "^4.103.0"
+  },
+  "overrides": {
+    "postcss": "8.5.15"
+  }
+}
