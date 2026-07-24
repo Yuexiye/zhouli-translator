@@ -3,21 +3,11 @@ import {
   buildUserPrompt,
   buildSystemPrompt,
   buildDemoResult,
-  CHARACTERS,
-  type XinsanguoCharacter,
   type XinsanguoLevel,
 } from "@/lib/xinsanguo-prompt";
 
 export const runtime = "nodejs";
 
-const VALID_CHARACTERS = new Set<XinsanguoCharacter>([
-  "caocao",
-  "liubei",
-  "guanyu",
-  "zhangfei",
-  "zhugeliang",
-  "sima_yi",
-]);
 const VALID_LEVELS = new Set<XinsanguoLevel>(["light", "standard", "grand"]);
 
 const RATE_WINDOW_MS = 10 * 60 * 1000;
@@ -273,7 +263,6 @@ function cleanGeneratedText(value: string): string {
 export async function POST(request: NextRequest) {
   let body: {
     text?: unknown;
-    character?: unknown;
     level?: unknown;
     provider?: unknown;
     model?: unknown;
@@ -283,7 +272,7 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "无言不可成礼，请先写下一句话。" },
+      { error: "无话可译，请先写下一句。" },
       { status: 400 },
     );
   }
@@ -298,9 +287,6 @@ export async function POST(request: NextRequest) {
       ? body.model.trim()
       : undefined;
   const provider = resolveProvider(requestedProvider, requestedModel);
-  const character = VALID_CHARACTERS.has(body.character as XinsanguoCharacter)
-    ? (body.character as XinsanguoCharacter)
-    : "caocao";
   const level = VALID_LEVELS.has(body.level as XinsanguoLevel)
     ? (body.level as XinsanguoLevel)
     : "standard";
@@ -330,21 +316,21 @@ export async function POST(request: NextRequest) {
 
   if (!text) {
     return NextResponse.json(
-      { error: "无言不可成礼，请先写下一句话。" },
+      { error: "无话可译，请先写下一句。" },
       { status: 400 },
     );
   }
 
   if (text.length > 300) {
     return NextResponse.json(
-      { error: "言多则礼繁，请将原话控制在300字以内。" },
+      { error: "言多则意繁，请将原话控制在300字以内。" },
       { status: 400 },
     );
   }
 
   if (provider.provider === "demo") {
     return NextResponse.json({
-      result: buildDemoResult(text, character, level),
+      result: buildDemoResult(text, level),
       model: provider.reason === "missing_openai_compatible_env" ? "本地演示" : "本地演示",
       demo: true,
       remaining: rate.remaining,
@@ -361,7 +347,7 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: "system",
-          content: buildSystemPrompt(character, level),
+          content: buildSystemPrompt(level),
         },
         {
           role: "user",
@@ -396,7 +382,7 @@ export async function POST(request: NextRequest) {
         data,
       );
       return NextResponse.json(
-        { error: "礼官暂未回应，请稍后再试。" },
+        { error: "执笔官暂未回应，请稍后再试。" },
         { status: 502 },
       );
     }
@@ -407,7 +393,7 @@ export async function POST(request: NextRequest) {
 
     if (!cleanedResult || cleanedResult.length < 20) {
       return NextResponse.json(
-        { error: "此言尚未成礼，请再试一次。" },
+        { error: "此言尚未成译，请再试一次。" },
         { status: 502 },
       );
     }
@@ -424,7 +410,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Translate request failed:", error);
     return NextResponse.json(
-      { error: "礼官远行未归，请稍后再试。" },
+      { error: "执笔官远行未归，请稍后再试。" },
       { status: 502 },
     );
   }

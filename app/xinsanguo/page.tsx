@@ -2,52 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { buildDemoResult, type XinsanguoCharacter, type XinsanguoLevel } from "@/lib/xinsanguo-prompt";
-
-const CHARACTERS = [
-  {
-    id: "caocao" as XinsanguoCharacter,
-    title: "曹操",
-    description: "不可能，绝对不可能",
-    mark: "操",
-    color: "#c2410c",
-  },
-  {
-    id: "liubei" as XinsanguoCharacter,
-    title: "刘备",
-    description: "自刎归天",
-    mark: "备",
-    color: "#1d4ed8",
-  },
-  {
-    id: "guanyu" as XinsanguoCharacter,
-    title: "关羽",
-    description: "哼，关某何惧",
-    mark: "羽",
-    color: "#15803d",
-  },
-  {
-    id: "zhangfei" as XinsanguoCharacter,
-    title: "张飞",
-    description: "一万个透明窟窿",
-    mark: "飞",
-    color: "#7c3aed",
-  },
-  {
-    id: "zhugeliang" as XinsanguoCharacter,
-    title: "诸葛亮",
-    description: "龙，可是帝王之征啊",
-    mark: "亮",
-    color: "#0369a1",
-  },
-  {
-    id: "sima_yi" as XinsanguoCharacter,
-    title: "司马懿",
-    description: "不急，且看他如何收场",
-    mark: "懿",
-    color: "#475569",
-  },
-];
+import { buildDemoResult, type XinsanguoLevel } from "@/lib/xinsanguo-prompt";
 
 const LEVELS = [
   { id: "light" as XinsanguoLevel, title: "随口", description: "一句到位" },
@@ -236,7 +191,6 @@ function truncateForCanvas(
 }
 
 export default function Home() {
-  const [character, setCharacter] = useState<XinsanguoCharacter>("caocao");
   const [level, setLevel] = useState<XinsanguoLevel>("standard");
   const [provider, setProvider] = useState<ProviderId>("openai_compatible");
   const [model, setModel] = useState("DeepSeek-V4-Flash");
@@ -252,10 +206,6 @@ export default function Home() {
   const resultRef = useRef<HTMLDivElement>(null);
   const autoRan = useRef(false);
 
-  const selectedCharacter = useMemo(
-    () => CHARACTERS.find((item) => item.id === character) ?? CHARACTERS[0],
-    [character],
-  );
   const selectedLevel = useMemo(
     () => LEVELS.find((item) => item.id === level) ?? LEVELS[1],
     [level],
@@ -301,7 +251,7 @@ export default function Home() {
     setCopied(false);
 
     if (provider === "demo") {
-      setResult(buildDemoResult(trimmed, character, level));
+      setResult(buildDemoResult(trimmed, level));
       setIsDemo(true);
       setDemoNotice(null);
       setRemaining(null);
@@ -322,7 +272,6 @@ export default function Home() {
           },
           body: JSON.stringify({
             text: trimmed,
-            character,
             level,
             provider,
             model,
@@ -351,7 +300,7 @@ export default function Home() {
       }
     } catch (err) {
       // 连接失败（如静态部署无后端）→ 优雅降级为本地演示
-      setResult(buildDemoResult(trimmed, character, level));
+      setResult(buildDemoResult(trimmed, level));
       setIsDemo(true);
       setDemoNotice("当前为演示档（未连接翻译服务），真实翻译请在本地运行。");
       setRemaining(null);
@@ -418,7 +367,7 @@ export default function Home() {
     ctx.fillStyle = cream;
     ctx.textAlign = "center";
     ctx.font = `600 52px ${serif}`;
-    ctx.fillText(selectedCharacter.mark, sealX + sealSize / 2, sealY + sealSize / 2 + 20);
+    ctx.fillText("三", sealX + sealSize / 2, sealY + sealSize / 2 + 20);
 
     ctx.strokeStyle = "rgba(239,220,188,0.18)";
     ctx.lineWidth = 1;
@@ -457,12 +406,12 @@ export default function Home() {
     ctx.textAlign = "left";
     ctx.fillText("新三国台词翻译器 · XIN SAN GUO", 80, H - 96);
     ctx.textAlign = "right";
-    ctx.fillText(`${selectedCharacter.title} · ${selectedLevel.title}`, W - 80, H - 96);
+    ctx.fillText(`新三国风 · ${selectedLevel.title}`, W - 80, H - 96);
 
     const url = canvas.toDataURL("image/png");
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `新三国-${selectedCharacter.title}.png`;
+    anchor.download = `新三国-台词.png`;
     anchor.click();
   }
 
@@ -496,21 +445,21 @@ export default function Home() {
           <em>说得像新三国</em>
         </h1>
         <p className="hero-copy">
-          现代白话为骨，角色人设为法。
+          现代白话为骨，新三国风味为法。
           <br />
-          选一位人物，便把你的话翻成他的台词。
+          把你的话，翻成新三国台词。
         </p>
         <a className="hero-cta" href="#translator">
           入席请角色开口
           <ArrowIcon />
         </a>
         <div className="hero-orbit orbit-one" aria-hidden="true">
-          <span>曹</span>
+          <span>三</span>
         </div>
         <div className="hero-orbit orbit-two" aria-hidden="true">
-          <span>亮</span>
+          <span>崩</span>
         </div>
-        <div className="hero-side-note left">角色自演</div>
+        <div className="hero-side-note left">全员乱入</div>
         <div className="hero-side-note right">场景崩坏</div>
       </section>
 
@@ -520,7 +469,7 @@ export default function Home() {
             <i>壹</i>
           </span>
           <div>
-            <p>白话入戏，角色自演</p>
+            <p>白话入戏，梗皆可用</p>
             <h2>现代白话，翻译成新三国台词</h2>
           </div>
         </div>
@@ -535,28 +484,6 @@ export default function Home() {
               <span className={`character-count ${text.length > 280 ? "warning" : ""}`}>
                 {text.length} / 300
               </span>
-            </div>
-
-            <div className="mode-grid" role="radiogroup" aria-label="选择角色">
-              {CHARACTERS.map((char) => (
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={character === char.id}
-                  className={character === char.id ? "active" : ""}
-                  key={char.id}
-                  onClick={() => setCharacter(char.id)}
-                  title={char.description}
-                >
-                  <span className="mode-mark" style={{ color: char.color, borderColor: char.color }}>
-                    {char.mark}
-                  </span>
-                  <span>
-                    <strong>{char.title}</strong>
-                    <small>{char.description}</small>
-                  </span>
-                </button>
-              ))}
             </div>
 
             <textarea
@@ -691,7 +618,7 @@ export default function Home() {
               <div>
                 <span className="panel-label inverse">成言</span>
                 <span className="result-style">
-                  {selectedCharacter.title} · {selectedLevel.title}
+                  新三国风 · {selectedLevel.title}
                 </span>
               </div>
                 <span className="result-seal" aria-hidden="true">
@@ -744,7 +671,7 @@ export default function Home() {
               <div className="empty-result">
                 <span className="empty-glyph">言</span>
                 <p>言未至，译未成</p>
-                <small>在左侧写下一句话，选择角色，再请角色开口</small>
+                <small>在左侧写下一句话，再点「请角色开口」</small>
               </div>
             )}
           </div>
@@ -756,7 +683,7 @@ export default function Home() {
           <span className="brand-seal">三</span>
           <span>
             <strong>新三国台词翻译器</strong>
-            <small>角色自演，场景崩坏</small>
+            <small>新三国风，梗皆可用</small>
           </span>
         </div>
         <div className="footer-note">
