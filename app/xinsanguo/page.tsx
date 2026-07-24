@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { XinsanguoCharacter, XinsanguoLevel } from "@/lib/xinsanguo-prompt";
+import { buildDemoResult, type XinsanguoCharacter, type XinsanguoLevel } from "@/lib/xinsanguo-prompt";
 
 const CHARACTERS = [
   {
@@ -248,6 +248,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [demoNotice, setDemoNotice] = useState<string | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const autoRan = useRef(false);
 
@@ -299,6 +300,15 @@ export default function Home() {
     setResult("");
     setCopied(false);
 
+    if (provider === "demo") {
+      setResult(buildDemoResult(trimmed, character, level));
+      setIsDemo(true);
+      setDemoNotice(null);
+      setRemaining(null);
+      setLoading(false);
+      return;
+    }
+
     const clientId = getClientId();
 
     try {
@@ -325,12 +335,14 @@ export default function Home() {
 
       if (!response.ok) {
         setError(data.error || "执笔官暂未回应，请稍后再试。");
+        setDemoNotice(null);
         setLoading(false);
         return;
       }
 
       setResult(data.result || "");
       setIsDemo(Boolean(data.demo));
+      setDemoNotice(null);
       setRemaining(data.remaining ?? null);
       setLoading(false);
 
@@ -338,7 +350,11 @@ export default function Home() {
         resultRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
     } catch (err) {
-      setError("执笔官远行未归，请稍后再试。");
+      // 连接失败（如静态部署无后端）→ 优雅降级为本地演示
+      setResult(buildDemoResult(trimmed, character, level));
+      setIsDemo(true);
+      setDemoNotice("当前为演示档（未连接翻译服务），真实翻译请在本地运行。");
+      setRemaining(null);
       setLoading(false);
     }
   }
@@ -682,6 +698,10 @@ export default function Home() {
                 入戏
               </span>
             </div>
+
+            {demoNotice && (
+              <p className="demo-notice">{demoNotice}</p>
+            )}
 
             {result ? (
               <>
