@@ -49,9 +49,9 @@ const CHARACTERS = [
 ];
 
 const LEVELS = [
-  { id: "light" as XinsanguoLevel, title: "小礼", description: "一句到位" },
-  { id: "standard" as XinsanguoLevel, title: "成礼", description: "完整展开" },
-  { id: "grand" as XinsanguoLevel, title: "大礼", description: "层层崩坏" },
+  { id: "light" as XinsanguoLevel, title: "随口", description: "一句到位" },
+  { id: "standard" as XinsanguoLevel, title: "铺陈", description: "完整展开" },
+  { id: "grand" as XinsanguoLevel, title: "崩坏", description: "层层崩坏" },
 ];
 
 type ProviderId = "deepseek" | "openai_compatible" | "demo";
@@ -283,7 +283,7 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "礼官暂未回应，请稍后再试。");
+        setError(data.error || "执笔官暂未回应，请稍后再试。");
         setLoading(false);
         return;
       }
@@ -297,7 +297,7 @@ export default function Home() {
         resultRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
     } catch (err) {
-      setError("礼官远行未归，请稍后再试。");
+      setError("执笔官远行未归，请稍后再试。");
       setLoading(false);
     }
   }
@@ -325,7 +325,7 @@ export default function Home() {
           </span>
         </a>
         <nav aria-label="页面导航">
-          <a href="#translator">请周公制礼</a>
+          <a href="#translator">请角色开口</a>
         </nav>
         <span className="header-note">新三国宇宙 · 试行本</span>
       </header>
@@ -347,7 +347,7 @@ export default function Home() {
           选一位人物，便把你的话翻成他的台词。
         </p>
         <a className="hero-cta" href="#translator">
-          入席请周公制礼
+          入席请角色开口
           <ArrowIcon />
         </a>
         <div className="hero-orbit orbit-one" aria-hidden="true">
@@ -366,7 +366,7 @@ export default function Home() {
             <i>壹</i>
           </span>
           <div>
-            <p>白话入礼，角色自演</p>
+            <p>白话入戏，角色自演</p>
             <h2>现代白话，翻译成新三国台词</h2>
           </div>
         </div>
@@ -430,12 +430,12 @@ export default function Home() {
             </div>
 
             <div className="divider">
-              <span>择其礼制</span>
+              <span>择其篇幅</span>
             </div>
 
             <div className="level-field">
               <div>
-                <span className="field-title">礼制深浅</span>
+                <span className="field-title">篇幅长短</span>
                 <span className="field-help">由短评到长篇崩坏</span>
               </div>
               <div className="level-switch" role="radiogroup" aria-label="选择生成长度">
@@ -515,7 +515,7 @@ export default function Home() {
             >
               <span className="button-decoration">◆</span>
               <span>
-                {loading ? LOADING_LINES[loadingIndex] : "请周公制礼"}
+                {loading ? LOADING_LINES[loadingIndex] : "请角色开口"}
               </span>
               {loading ? (
                 <span className="loading-dots" aria-hidden="true">
@@ -535,13 +535,13 @@ export default function Home() {
           >
             <div className="result-topline">
               <div>
-                <span className="panel-label inverse">成礼</span>
+                <span className="panel-label inverse">成言</span>
                 <span className="result-style">
                   {selectedCharacter.title} · {selectedLevel.title}
                 </span>
               </div>
-              <span className="result-seal" aria-hidden="true">
-                合礼
+                <span className="result-seal" aria-hidden="true">
+                入戏
               </span>
             </div>
 
@@ -554,7 +554,7 @@ export default function Home() {
                 </div>
                 <div className="result-actions">
                   <button type="button" onClick={copyResult}>
-                    {copied ? "已录于简册" : "复制全文"}
+                    {copied ? "已入戏本" : "复制全文"}
                   </button>
                   <button type="button" onClick={translate}>
                     再议一次
@@ -566,7 +566,7 @@ export default function Home() {
                       ? "本地演示 · 配置 API 后启用大模型"
                       : provider === "openai_compatible"
                         ? `OpenAI 兼容接口已接 · ${model}`
-                        : "DeepSeek 大儒已阅"}
+                        : "DeepSeek 已阅"}
                   </span>
                   {remaining !== null && (
                     <span>近10分钟还可翻译 {remaining} 次</span>
@@ -575,9 +575,9 @@ export default function Home() {
               </>
             ) : (
               <div className="empty-result">
-                <span className="empty-glyph">礼</span>
-                <p>言未至，礼未成</p>
-                <small>在左侧写下一句话，选择角色，再请周公制礼</small>
+                <span className="empty-glyph">言</span>
+                <p>言未至，译未成</p>
+                <small>在左侧写下一句话，选择角色，再请角色开口</small>
               </div>
             )}
           </div>
