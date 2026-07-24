@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { XinsanguoCharacter, XinsanguoLevel } from "@/lib/xinsanguo-prompt";
 
 const CHARACTERS = [
@@ -205,6 +206,35 @@ function ArrowIcon() {
   );
 }
 
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const ch of text) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = ch;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function truncateForCanvas(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let trimmed = text;
+  while (trimmed.length > 1 && ctx.measureText(trimmed + "…").width > maxWidth) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed + "…";
+}
+
 export default function Home() {
   const [character, setCharacter] = useState<XinsanguoCharacter>("caocao");
   const [level, setLevel] = useState<XinsanguoLevel>("standard");
@@ -219,6 +249,7 @@ export default function Home() {
   const [isDemo, setIsDemo] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const autoRan = useRef(false);
 
   const selectedCharacter = useMemo(
     () => CHARACTERS.find((item) => item.id === character) ?? CHARACTERS[0],
@@ -249,8 +280,18 @@ export default function Home() {
     return () => window.clearInterval(interval);
   }, [loading]);
 
-  async function translate() {
-    const trimmed = text.trim();
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (autoRan.current) return;
+      autoRan.current = true;
+      syncInputText("今天天气真好啊");
+      translate("今天天气真好啊");
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  async function translate(overrideText?: string) {
+    const trimmed = (overrideText ?? text).trim();
     if (!trimmed || loading) return;
 
     setLoading(true);
@@ -310,6 +351,103 @@ export default function Home() {
       await wait(1500);
       setCopied(false);
     }
+  }
+
+  function runExample(value: string) {
+    syncInputText(value);
+    translate(value);
+  }
+
+  async function exportCard() {
+    if (!result) return;
+    const canvas = document.createElement("canvas");
+    const scale = 2;
+    const W = 1080;
+    const H = 1350;
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(scale, scale);
+
+    const cream = "#f0e8da";
+    const red = "#9e3228";
+    const redDeep = "#77251f";
+    const inkSoft = "#b9ad99";
+    const serif = "'Songti SC','STSong','SimSun','Microsoft YaHei',serif";
+
+    ctx.fillStyle = "#26221c";
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = red;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(40, 40, W - 80, H - 80);
+    ctx.strokeStyle = "rgba(239,220,188,0.22)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(54, 54, W - 108, H - 108);
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = cream;
+    ctx.font = `600 30px ${serif}`;
+    ctx.fillText("三", 80, 120);
+    ctx.font = `600 26px ${serif}`;
+    ctx.fillText("新三国台词翻译器", 124, 122);
+
+    const sealSize = 96;
+    const sealX = W - 80 - sealSize;
+    const sealY = 78;
+    ctx.fillStyle = red;
+    ctx.fillRect(sealX, sealY, sealSize, sealSize);
+    ctx.fillStyle = redDeep;
+    ctx.fillRect(sealX + 4, sealY + 4, sealSize - 8, sealSize - 8);
+    ctx.fillStyle = cream;
+    ctx.textAlign = "center";
+    ctx.font = `600 52px ${serif}`;
+    ctx.fillText(selectedCharacter.mark, sealX + sealSize / 2, sealY + sealSize / 2 + 20);
+
+    ctx.strokeStyle = "rgba(239,220,188,0.18)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(80, 168);
+    ctx.lineTo(W - 80, 168);
+    ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = inkSoft;
+    ctx.font = `400 22px ${serif}`;
+    ctx.fillText(
+      truncateForCanvas(ctx, `原言：${text.trim() || "（未提供）"}`, W - 160),
+      80,
+      212,
+    );
+
+    ctx.fillStyle = cream;
+    ctx.font = `400 38px ${serif}`;
+    const paragraphs = result.split("\n").filter((p) => p.trim());
+    const lines: string[] = [];
+    for (const para of paragraphs) {
+      for (const ln of wrapText(ctx, para, W - 160)) lines.push(ln);
+      lines.push("");
+    }
+    let y = 280;
+    const lineHeight = 58;
+    for (const ln of lines) {
+      if (y > H - 150) break;
+      ctx.fillText(ln, 80, y);
+      y += lineHeight;
+    }
+
+    ctx.fillStyle = inkSoft;
+    ctx.font = `400 20px ${serif}`;
+    ctx.textAlign = "left";
+    ctx.fillText("新三国台词翻译器 · XIN SAN GUO", 80, H - 96);
+    ctx.textAlign = "right";
+    ctx.fillText(`${selectedCharacter.title} · ${selectedLevel.title}`, W - 80, H - 96);
+
+    const url = canvas.toDataURL("image/png");
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `新三国-${selectedCharacter.title}.png`;
+    anchor.click();
   }
 
   return (
@@ -420,7 +558,7 @@ export default function Home() {
                   <button
                     key={example}
                     type="button"
-                    onClick={() => syncInputText(example)}
+                    onClick={() => runExample(example)}
                     title={example}
                   >
                     {example}
@@ -511,7 +649,7 @@ export default function Home() {
               className="translate-button"
               type="button"
               disabled={!text.trim() || loading}
-              onClick={translate}
+              onClick={() => translate()}
             >
               <span className="button-decoration">◆</span>
               <span>
@@ -547,16 +685,25 @@ export default function Home() {
 
             {result ? (
               <>
-                <div className="result-content">
+                <div className="result-content reveal" key={result}>
                   {result.split("\n").map((paragraph, index) =>
-                    paragraph ? <p key={index}>{paragraph}</p> : <br key={index} />,
+                    paragraph ? (
+                      <p key={index} style={{ ["--i"]: index } as CSSProperties}>
+                        {paragraph}
+                      </p>
+                    ) : (
+                      <br key={index} />
+                    ),
                   )}
                 </div>
                 <div className="result-actions">
                   <button type="button" onClick={copyResult}>
                     {copied ? "已入戏本" : "复制全文"}
                   </button>
-                  <button type="button" onClick={translate}>
+                  <button type="button" onClick={exportCard} title="导出为图片">
+                    导出卡片
+                  </button>
+                  <button type="button" onClick={() => translate()}>
                     再议一次
                   </button>
                 </div>
