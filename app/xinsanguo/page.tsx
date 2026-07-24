@@ -56,10 +56,19 @@ const LEVELS = [
 
 type ProviderId = "deepseek" | "openai_compatible" | "demo";
 
-const PROVIDERS: Array<{ id: ProviderId; title: string; description: string }> = [
-  { id: "deepseek", title: "DeepSeek", description: "使用 DeepSeek 官方接口" },
-  { id: "openai_compatible", title: "OpenAI 兼容", description: "使用自定义接口" },
-  { id: "demo", title: "本地演示", description: "不请求网络，直接出梗" },
+const PROVIDERS: Array<{ id: ProviderId; title: string; description: string; mark: string }> = [
+  { id: "deepseek", title: "DeepSeek", description: "使用 DeepSeek 官方接口", mark: "深" },
+  { id: "openai_compatible", title: "OpenAI 兼容", description: "使用自定义接口", mark: "兼" },
+  { id: "demo", title: "本地演示", description: "不请求网络，直接出梗", mark: "示" },
+];
+
+const MODELS = [
+  { id: "DeepSeek-V4-Flash", title: "DeepSeek-V4-Flash", description: "默认 · 较快" },
+  { id: "DeepSeek-V4-Pro", title: "DeepSeek-V4-Pro", description: "更强 · 较慢" },
+  { id: "glm-5.2", title: "GLM-5.2", description: "智谱" },
+  { id: "Kimi-K2.6", title: "Kimi-K2.6", description: "月之暗面" },
+  { id: "MiniMax-M3", title: "MiniMax-M3", description: "MiniMax" },
+  { id: "auto", title: "auto", description: "网关自动路由" },
 ];
 
 const EXAMPLES = [
@@ -77,6 +86,8 @@ const LOADING_LINES = [
   "正在触发天意机制",
   "正在五秒崩",
 ];
+
+const GITHUB_URL = "https://github.com/Yuexiye/zhouli-translator";
 
 function createClientId() {
   const cryptoObject = globalThis.crypto;
@@ -177,10 +188,28 @@ async function fetchWithTimeout(
   }
 }
 
+function ArrowIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [character, setCharacter] = useState<XinsanguoCharacter>("caocao");
   const [level, setLevel] = useState<XinsanguoLevel>("standard");
-  const [provider, setProvider] = useState<ProviderId>("demo");
+  const [provider, setProvider] = useState<ProviderId>("openai_compatible");
+  const [model, setModel] = useState("DeepSeek-V4-Flash");
   const [text, setText] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
@@ -189,7 +218,6 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
   const selectedCharacter = useMemo(
@@ -209,29 +237,6 @@ export default function Home() {
     setText(value.slice(0, 300));
     setError("");
   }
-
-  useEffect(() => {
-    const element = inputRef.current;
-    if (!element) return;
-    let animationFrame = 0;
-    const readNativeValue = () => {
-      const value = element.value.slice(0, 300);
-      setText(value);
-      setError("");
-    };
-    const syncNativeValue = () => {
-      readNativeValue();
-      window.cancelAnimationFrame(animationFrame);
-      animationFrame = window.requestAnimationFrame(readNativeValue);
-    };
-    element.addEventListener("input", syncNativeValue);
-    element.addEventListener("change", syncNativeValue);
-    return () => {
-      element.removeEventListener("input", syncNativeValue);
-      element.removeEventListener("change", syncNativeValue);
-      window.cancelAnimationFrame(animationFrame);
-    };
-  }, []);
 
   useEffect(() => {
     if (!loading) {
@@ -269,9 +274,10 @@ export default function Home() {
             character,
             level,
             provider,
+            model,
           }),
         },
-        60_000,
+        150_000,
       );
 
       const data = await response.json();
@@ -307,194 +313,296 @@ export default function Home() {
   }
 
   return (
-    <main className="xinsanguo-main">
-      <section className="xinsanguo-hero">
-        <div className="xinsanguo-hero-inner">
-          <span className="xinsanguo-eyebrow">新三国体翻译器</span>
-          <h1>
-            新三国宇宙
-            <br />
-            台词翻译器
-          </h1>
-          <p>
-            把现代中文扔进新三国的平行宇宙，让它自动获得失重感。
-            <br />
-            角色自己演自己，场景随时崩坏，5秒内必出梗。
-          </p>
+    <main>
+      <div className="page-noise" aria-hidden="true" />
+
+      <header className="site-header">
+        <a className="brand" href="#top" aria-label="新三国台词翻译器首页">
+          <span className="brand-seal">三</span>
+          <span>
+            <strong>新三国台词翻译器</strong>
+            <small>XIN SAN GUO</small>
+          </span>
+        </a>
+        <nav aria-label="页面导航">
+          <a href="#translator">请周公制礼</a>
+        </nav>
+        <span className="header-note">新三国宇宙 · 试行本</span>
+      </header>
+
+      <section className="hero" id="top">
+        <div className="hero-kicker">
+          <span />
+          把现代白话，译成角色台词
+          <span />
         </div>
+        <h1>
+          把寻常的话
+          <br />
+          <em>说得像新三国</em>
+        </h1>
+        <p className="hero-copy">
+          现代白话为骨，角色人设为法。
+          <br />
+          选一位人物，便把你的话翻成他的台词。
+        </p>
+        <a className="hero-cta" href="#translator">
+          入席请周公制礼
+          <ArrowIcon />
+        </a>
+        <div className="hero-orbit orbit-one" aria-hidden="true">
+          <span>曹</span>
+        </div>
+        <div className="hero-orbit orbit-two" aria-hidden="true">
+          <span>亮</span>
+        </div>
+        <div className="hero-side-note left">角色自演</div>
+        <div className="hero-side-note right">场景崩坏</div>
       </section>
 
-      <section className="xinsanguo-panels">
-        <div className="translator-panel input-panel">
-          <div className="panel-header">
-            <span className="panel-label">白话入席</span>
-            <span className="char-count">{text.length}/300</span>
+      <section className="translator-section" id="translator">
+        <div className="section-heading">
+          <span className="section-number">
+            <i>壹</i>
+          </span>
+          <div>
+            <p>白话入礼，角色自演</p>
+            <h2>现代白话，翻译成新三国台词</h2>
           </div>
+        </div>
 
-          <textarea
-            ref={inputRef}
-            value={text}
-            onChange={(event) => syncInputText(event.target.value)}
-            placeholder="在此写下你想说的话……"
-            rows={6}
-          />
-
-          <div className="examples">
-            {EXAMPLES.map((example) => (
-              <button
-                key={example}
-                type="button"
-                className="example-chip"
-                onClick={() => syncInputText(example)}
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-
-          <div className="controls">
-            <div className="provider-grid">
-              {PROVIDERS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`provider-button ${provider === item.id ? "active" : ""}`}
-                  onClick={() => setProvider(item.id)}
-                  title={item.description}
-                >
-                  <span className="provider-title">{item.title}</span>
-                  <span className="provider-desc">{item.description}</span>
-                </button>
-              ))}
+        <div className="translator-shell">
+          <div className="translator-panel input-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="panel-label">原言</span>
+                <h3>你本来想说什么？</h3>
+              </div>
+              <span className={`character-count ${text.length > 280 ? "warning" : ""}`}>
+                {text.length} / 300
+              </span>
             </div>
 
-            <div className="character-grid">
+            <div className="mode-grid" role="radiogroup" aria-label="选择角色">
               {CHARACTERS.map((char) => (
                 <button
-                  key={char.id}
                   type="button"
-                  className={`character-button ${character === char.id ? "active" : ""}`}
-                  style={
-                    character === char.id
-                      ? { borderColor: char.color, backgroundColor: char.color + "18" }
-                      : {}
-                  }
+                  role="radio"
+                  aria-checked={character === char.id}
+                  className={character === char.id ? "active" : ""}
+                  key={char.id}
                   onClick={() => setCharacter(char.id)}
                   title={char.description}
                 >
-                  <span className="character-mark" style={{ color: char.color }}>
+                  <span className="mode-mark" style={{ color: char.color, borderColor: char.color }}>
                     {char.mark}
                   </span>
-                  <span className="character-title">{char.title}</span>
+                  <span>
+                    <strong>{char.title}</strong>
+                    <small>{char.description}</small>
+                  </span>
                 </button>
               ))}
             </div>
 
-            <div className="level-selector">
-              {LEVELS.map((item) => (
+            <textarea
+              value={text}
+              onChange={(event) => syncInputText(event.target.value)}
+              placeholder="在此写下你想说的话……"
+              rows={6}
+              maxLength={300}
+            />
+
+            <div className="example-row">
+              <span>不知说什么？</span>
+              <div>
+                {EXAMPLES.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => syncInputText(example)}
+                    title={example}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="divider">
+              <span>择其礼制</span>
+            </div>
+
+            <div className="level-field">
+              <div>
+                <span className="field-title">礼制深浅</span>
+                <span className="field-help">由短评到长篇崩坏</span>
+              </div>
+              <div className="level-switch" role="radiogroup" aria-label="选择生成长度">
+                {LEVELS.map((item) => (
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={level === item.id}
+                    className={level === item.id ? "active" : ""}
+                    key={item.id}
+                    onClick={() => setLevel(item.id)}
+                    title={item.description}
+                  >
+                    {item.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="divider">
+              <span>择其接口</span>
+            </div>
+
+            <div className="mode-grid" role="radiogroup" aria-label="选择接口">
+              {PROVIDERS.map((item) => (
                 <button
-                  key={item.id}
                   type="button"
-                  className={`level-button ${level === item.id ? "active" : ""}`}
-                  onClick={() => setLevel(item.id)}
+                  role="radio"
+                  aria-checked={provider === item.id}
+                  className={provider === item.id ? "active" : ""}
+                  key={item.id}
+                  onClick={() => setProvider(item.id)}
                   title={item.description}
                 >
-                  {item.title}
+                  <span className="mode-mark">{item.mark}</span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.description}</small>
+                  </span>
                 </button>
               ))}
             </div>
-          </div>
 
-          {error && <p className="error-message">{error}</p>}
-
-          <button
-            className="translate-button"
-            type="button"
-            disabled={!text.trim() || loading}
-            onClick={translate}
-          >
-            <span className="button-decoration">◆</span>
-            <span>
-              {loading ? LOADING_LINES[loadingIndex] : "请周公制礼"}
-            </span>
-            {loading ? (
-              <span className="loading-dots" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-            ) : (
-              <span className="button-arrow">→</span>
+            {provider !== "demo" && (
+              <>
+                <div className="divider">
+                  <span>择其模型</span>
+                </div>
+                <div className="level-field">
+                  <div>
+                    <span className="field-title">选用模型</span>
+                    <span className="field-help">切换不同大模型</span>
+                  </div>
+                  <select
+                    className="model-select"
+                    value={model}
+                    onChange={(event) => setModel(event.target.value)}
+                    aria-label="选择模型"
+                  >
+                    {MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title} · {m.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
-          </button>
-        </div>
 
-        <div
-          className={`translator-panel result-panel ${result ? "has-result" : ""}`}
-          ref={resultRef}
-        >
-          <div className="result-topline">
-            <div>
-              <span className="panel-label inverse">
-                {selectedCharacter.title} · {selectedLevel.title}
+            {error && <p className="error-message">{error}</p>}
+
+            <button
+              className="translate-button"
+              type="button"
+              disabled={!text.trim() || loading}
+              onClick={translate}
+            >
+              <span className="button-decoration">◆</span>
+              <span>
+                {loading ? LOADING_LINES[loadingIndex] : "请周公制礼"}
               </span>
-              <span className="result-style">
-                {selectedCharacter.description}
-              </span>
-            </div>
-            <span className="result-seal" aria-hidden="true">
-              合礼
-            </span>
+              {loading ? (
+                <span className="loading-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              ) : (
+                <ArrowIcon />
+              )}
+            </button>
           </div>
 
-          {result ? (
-            <>
-              <div className="result-content">
-                {result.split("\n").map((paragraph, index) =>
-                  paragraph ? <p key={index}>{paragraph}</p> : <br key={index} />,
-                )}
-              </div>
-              <div className="result-actions">
-                <button type="button" onClick={copyResult}>
-                  {copied ? "已录于简册" : "复制全文"}
-                </button>
-                <button type="button" onClick={translate}>
-                  再议一次
-                </button>
-              </div>
-              <div className="result-meta">
-                <span>
-                  {isDemo
-                    ? "本地演示 · 切换 OpenAI 兼容并填写环境变量后启用大模型"
-                    : provider === "openai_compatible"
-                      ? "OpenAI 兼容接口已接"
-                      : "DeepSeek 大儒已阅"}
+          <div
+            className={`translator-panel result-panel ${result ? "has-result" : ""}`}
+            ref={resultRef}
+          >
+            <div className="result-topline">
+              <div>
+                <span className="panel-label inverse">成礼</span>
+                <span className="result-style">
+                  {selectedCharacter.title} · {selectedLevel.title}
                 </span>
-                {remaining !== null && (
-                  <span>
-                    近10分钟还可翻译 {remaining} 次
-                  </span>
-                )}
               </div>
-            </>
-          ) : (
-            <div className="empty-result">
-              <span className="empty-glyph">礼</span>
-              <p>言未至，礼未成</p>
-              <small>在左侧写下一句话，选择角色，再请周公制礼</small>
+              <span className="result-seal" aria-hidden="true">
+                合礼
+              </span>
             </div>
-          )}
+
+            {result ? (
+              <>
+                <div className="result-content">
+                  {result.split("\n").map((paragraph, index) =>
+                    paragraph ? <p key={index}>{paragraph}</p> : <br key={index} />,
+                  )}
+                </div>
+                <div className="result-actions">
+                  <button type="button" onClick={copyResult}>
+                    {copied ? "已录于简册" : "复制全文"}
+                  </button>
+                  <button type="button" onClick={translate}>
+                    再议一次
+                  </button>
+                </div>
+                <div className="result-meta">
+                  <span>
+                    {isDemo
+                      ? "本地演示 · 配置 API 后启用大模型"
+                      : provider === "openai_compatible"
+                        ? `OpenAI 兼容接口已接 · ${model}`
+                        : "DeepSeek 大儒已阅"}
+                  </span>
+                  {remaining !== null && (
+                    <span>近10分钟还可翻译 {remaining} 次</span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="empty-result">
+                <span className="empty-glyph">礼</span>
+                <p>言未至，礼未成</p>
+                <small>在左侧写下一句话，选择角色，再请周公制礼</small>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="xinsanguo-footer">
-        <p>
-          本工具用于语言娱乐与文化创作，生成内容请自行判断与核实。
-        </p>
-        <p>
-          灵感来自 2010 版电视剧《三国》及中文互联网「扭三」亚文化。
-        </p>
-      </section>
+      <footer>
+        <div className="brand footer-brand">
+          <span className="brand-seal">三</span>
+          <span>
+            <strong>新三国台词翻译器</strong>
+            <small>角色自演，场景崩坏</small>
+          </span>
+        </div>
+        <div className="footer-note">
+          <p>本工具用于语言娱乐与文化创作，生成内容请自行判断与核实。</p>
+          <p>灵感来自 2010 版电视剧《三国》及中文互联网「扭三」亚文化。</p>
+        </div>
+        <div className="footer-right">
+          <span>Yuexiye · 二〇二六</span>
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer">
+            开源仓库
+          </a>
+        </div>
+      </footer>
     </main>
   );
 }

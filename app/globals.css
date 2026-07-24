@@ -912,6 +912,29 @@ main {
   background: var(--red);
 }
 
+.model-select {
+  min-width: 210px;
+  height: 36px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: rgba(235, 225, 208, 0.42);
+  border: 1px solid var(--line);
+  font: 500 12px/1 var(--serif);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.model-select:hover {
+  border-color: rgba(158, 50, 40, 0.4);
+}
+
+.model-select:focus {
+  outline: none;
+  border-color: rgba(158, 50, 40, 0.6);
+  box-shadow: 0 0 0 3px rgba(158, 50, 40, 0.06);
+}
+
 .error-message {
   margin: 13px 0 -5px;
   color: var(--red);

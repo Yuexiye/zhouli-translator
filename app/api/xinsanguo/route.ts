@@ -209,16 +209,24 @@ async function fetchOpenAICompatibleWithRetry(
 
 function resolveProvider(
   requested: "deepseek" | "openai_compatible" | "demo" | undefined,
+  requestedModel?: string,
 ) {
   if (requested === "openai_compatible") {
     const baseUrl = process.env.OPENAI_COMPATIBLE_BASE_URL?.trim();
     const apiKey = process.env.OPENAI_COMPATIBLE_API_KEY?.trim();
-    const model = process.env.OPENAI_COMPATIBLE_MODEL?.trim();
 
-    if (!baseUrl || !apiKey || !model) {
+    if (!baseUrl || !apiKey) {
       return {
         provider: "demo" as const,
         reason: "missing_openai_compatible_env" as const,
+      };
+    }
+
+    const model = requestedModel?.trim() || process.env.OPENAI_COMPATIBLE_MODEL?.trim();
+    if (!model) {
+      return {
+        provider: "demo" as const,
+        reason: "missing_openai_compatible_model" as const,
       };
     }
 
@@ -236,10 +244,14 @@ function resolveProvider(
 
   const deepSeekKey = process.env.DEEPSEEK_API_KEY?.trim();
   if (deepSeekKey) {
+    const model =
+      requestedModel?.trim() ||
+      process.env.DEEPSEEK_MODEL?.trim() ||
+      "deepseek-v4-flash";
     return {
       provider: "deepseek" as const,
       apiKey: deepSeekKey,
-      model: process.env.DEEPSEEK_MODEL?.trim() || "deepseek-v4-flash",
+      model,
     };
   }
 
@@ -264,6 +276,7 @@ export async function POST(request: NextRequest) {
     character?: unknown;
     level?: unknown;
     provider?: unknown;
+    model?: unknown;
   };
 
   try {
@@ -280,7 +293,11 @@ export async function POST(request: NextRequest) {
       ? body.provider
       : "deepseek"
   ) as "deepseek" | "openai_compatible" | "demo";
-  const provider = resolveProvider(requestedProvider);
+  const requestedModel =
+    typeof body.model === "string" && body.model.trim()
+      ? body.model.trim()
+      : undefined;
+  const provider = resolveProvider(requestedProvider, requestedModel);
   const character = VALID_CHARACTERS.has(body.character as XinsanguoCharacter)
     ? (body.character as XinsanguoCharacter)
     : "caocao";
