@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   buildUserPrompt,
+  buildSystemPrompt,
   buildDemoResult,
   CHARACTERS,
   type XinsanguoCharacter,
@@ -150,7 +151,7 @@ async function fetchDeepSeekWithRetry(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(150_000),
       });
 
       if (response.ok || response.status < 500 || attempt >= retryDelays.length) {
@@ -187,7 +188,7 @@ async function fetchOpenAICompatibleWithRetry(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(150_000),
       });
 
       if (response.ok || response.status < 500 || attempt >= retryDelays.length) {
@@ -338,23 +339,26 @@ export async function POST(request: NextRequest) {
 
   try {
     const maxTokens = level === "grand" ? 600 : 400;
-    const requestBody = {
-      model: provider.provider === "deepseek" ? provider.model : provider.model,
+    const requestBody: Record<string, unknown> = {
+      model: provider.model,
       messages: [
         {
           role: "system",
-          content: "",
+          content: buildSystemPrompt(character, level),
         },
         {
           role: "user",
-          content: buildUserPrompt(text, character, level),
+          content: buildUserPrompt(text),
         },
       ],
       max_tokens: maxTokens,
       temperature: 0.8,
       stream: false,
-      thinking: { type: "disabled" },
     };
+    // `thinking` 是 DeepSeek 专属参数，通用 OpenAI 兼容网关会拒绝它。
+    if (provider.provider === "deepseek") {
+      requestBody.thinking = { type: "disabled" };
+    }
 
     let response: Response;
     if (provider.provider === "deepseek") {
