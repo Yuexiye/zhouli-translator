@@ -119,14 +119,9 @@ function checkRateLimit(key: string) {
   };
 }
 
-function wait(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-async function fetchDeepSeekWithRetry(
-  apiKey: string,
+async function fetchWithRetry(
+  url: string,
+  headers: Record<string, string>,
   body: Record<string, unknown>,
 ) {
   const retryDelays = [800];
@@ -134,12 +129,9 @@ async function fetchDeepSeekWithRetry(
 
   for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
     try {
-      const response = await fetch("https://api.deepseek.com/chat/completions", {
+      const response = await fetch(url, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(150_000),
       });
@@ -154,44 +146,7 @@ async function fetchDeepSeekWithRetry(
       }
     }
 
-    await wait(retryDelays[attempt]);
-  }
-
-  throw lastError;
-}
-
-async function fetchOpenAICompatibleWithRetry(
-  baseUrl: string,
-  apiKey: string,
-  body: Record<string, unknown>,
-) {
-  const retryDelays = [800];
-  let lastError: unknown;
-  const endpoint = `${baseUrl.replace(/\/$/, "")}/chat/completions`;
-
-  for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(150_000),
-      });
-
-      if (response.ok || response.status < 500 || attempt >= retryDelays.length) {
-        return response;
-      }
-    } catch (error) {
-      lastError = error;
-      if (attempt >= retryDelays.length) {
-        throw error;
-      }
-    }
-
-    await wait(retryDelays[attempt]);
+    await new Promise((resolve) => setTimeout(resolve, retryDelays[attempt]));
   }
 
   throw lastError;
@@ -365,11 +320,21 @@ export async function POST(request: NextRequest) {
 
     let response: Response;
     if (provider.provider === "deepseek") {
-      response = await fetchDeepSeekWithRetry(provider.apiKey, requestBody);
+      response = await fetchWithRetry(
+        "https://api.deepseek.com/chat/completions",
+        {
+          Authorization: `Bearer ${provider.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        requestBody,
+      );
     } else {
-      response = await fetchOpenAICompatibleWithRetry(
-        provider.baseUrl,
-        provider.apiKey,
+      response = await fetchWithRetry(
+        `${provider.baseUrl.replace(/\/$/, "")}/chat/completions`,
+        {
+          Authorization: `Bearer ${provider.apiKey}`,
+          "Content-Type": "application/json",
+        },
         requestBody,
       );
     }

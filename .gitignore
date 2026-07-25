@@ -13,3 +13,19 @@ yarn-error.log*
 .DS_Store
 *.tsbuildinfo
 test-runs/
+
+# Generated files
+character_lines/
+xinsanguo-all-dialogue.txt
+xinsanguo-all-lines.txt
+xinsanguo-subtitles.zip
+xinsanguo-demo*.mp4
+out_pub/
+
+# Temp scripts
+_*.cjs
+_*.js
+_*.md
+
+# Logs
+dev.log

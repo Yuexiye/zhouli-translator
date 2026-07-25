@@ -192,7 +192,7 @@ function truncateForCanvas(
 
 export default function Home() {
   const [level, setLevel] = useState<XinsanguoLevel>("standard");
-  const [provider, setProvider] = useState<ProviderId>("openai_compatible");
+  const [provider, setProvider] = useState<ProviderId>("demo");
   const [model, setModel] = useState("DeepSeek-V4-Flash");
   const [text, setText] = useState("");
   const [result, setResult] = useState("");

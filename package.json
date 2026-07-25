@@ -1,16 +1,16 @@
 {
   "name": "zhouli-translator",
   "version": "0.1.0",
-  "description": "提供问礼与释礼的周礼体双向翻译网站与 Skill 包。",
+  "description": "把现代中文翻译成新三国台词风格。曹操、刘备、诸葛亮、关羽、张飞、司马懿，一网打尽。",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Aspirin0000/zhouli-translator.git"
+    "url": "git+https://github.com/Yuexiye/zhouli-translator.git"
   },
-  "homepage": "https://hehuzhouli.com",
+  "homepage": "https://github.com/Yuexiye/zhouli-translator",
   "bugs": {
-    "url": "https://github.com/Aspirin0000/zhouli-translator/issues"
+    "url": "https://github.com/Yuexiye/zhouli-translator/issues"
   },
   "scripts": {
     "dev": "next dev",
