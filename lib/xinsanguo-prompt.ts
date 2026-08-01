@@ -1,4 +1,5 @@
 export type XinsanguoLevel = "light" | "standard" | "grand";
+export type XinsanguoFaithfulness = number;
 
 const LEVEL_INSTRUCTIONS: Record<XinsanguoLevel, string> = {
   light: "随口：输出控制在60字以内，直接对应原句，用1个标志性梗点缀，不展开。",
@@ -108,8 +109,28 @@ const SYSTEM_PROMPT = `你是2010版电视剧《三国》（"新三国"）的台
 
 请保持新三国的"装歪的古风"——形式古风，逻辑崩坏，情绪爆棚。`;
 
-export function buildSystemPrompt(level: XinsanguoLevel): string {
-  return `${SYSTEM_PROMPT}\n\n【当前翻译档位】\n${LEVEL_INSTRUCTIONS[level]}\n\n【名场面梗素材库（化用时自由取材，不必拘泥单一角色）】\n${MEME_POOL}`;
+function buildFaithfulnessInstruction(faithfulness: XinsanguoFaithfulness): string {
+  const clamped = Math.max(0, Math.min(100, Math.round(faithfulness)));
+  const creative = 100 - clamped;
+  let modeHint: string;
+  if (clamped >= 75) {
+    modeHint = "高强度模式（贴近原剧台词）：尽量使用2010版《三国》里真实的名场面句式、招牌梗和角色口吻，让译文一听就让人想起剧中台词。逐句对应原意，禁止自创词语、时代错乱与逻辑崩坏。";
+  } else if (clamped >= 45) {
+    modeHint = "中强度模式：保留原句核心意思，用角色口吻重新表达，可随手化用名场面梗，但梗是调味料，不能覆盖原意。允许轻微的逻辑跳跃。";
+  } else {
+    modeHint = "低强度模式：只需保留原句情绪和核心话题，允许大幅创意发挥、逻辑崩坏、时代混乱、精确量化、自创词语。角色可以\"认真胡说八道\"。";
+  }
+  return `【原梗强度：${clamped}%】
+- 本句\"贴近原剧台词/原句\"的权重为 ${clamped}%，\"角色化创意发挥\"的权重为 ${creative}%。
+- ${modeHint}
+- 强度越高，越像\"把这句现代话直译成新三国台词\"；强度越低，越像\"角色借这句话自由发挥了一段表演\"。`;
+}
+
+export function buildSystemPrompt(
+  level: XinsanguoLevel,
+  faithfulness: XinsanguoFaithfulness = 50,
+): string {
+  return `${SYSTEM_PROMPT}\n\n【当前翻译档位】\n${LEVEL_INSTRUCTIONS[level]}\n\n${buildFaithfulnessInstruction(faithfulness)}\n\n【名场面梗素材库（化用时自由取材，不必拘泥单一角色）】\n${MEME_POOL}`;
 }
 
 export function buildUserPrompt(text: string): string {
@@ -172,8 +193,16 @@ const DEMO_TEMPLATES: Record<XinsanguoLevel, Array<{ char: string; fn: (s: strin
   ],
 };
 
-export function buildDemoResult(text: string, level: XinsanguoLevel): string {
-  const pool = DEMO_TEMPLATES[level];
+export function buildDemoResult(
+  text: string,
+  level: XinsanguoLevel,
+  faithfulness: XinsanguoFaithfulness = 50,
+): string {
+  // 本地演示无模型调用，按强度粗略映射：高强度偏"像原剧台词"(短、贴角色)，低强度偏"崩坏"。
+  let poolLevel = level;
+  if (faithfulness >= 70) poolLevel = "light";
+  else if (faithfulness <= 30) poolLevel = "grand";
+  const pool = DEMO_TEMPLATES[poolLevel];
   const pick = pool[Math.floor(Math.random() * pool.length)];
   return pick.fn(text);
 }

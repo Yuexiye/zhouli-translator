@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { buildDemoResult, type XinsanguoLevel } from "@/lib/xinsanguo-prompt";
+import {
+  buildDemoResult,
+  type XinsanguoLevel,
+  type XinsanguoFaithfulness,
+} from "@/lib/xinsanguo-prompt";
 
 const LEVELS = [
   { id: "light" as XinsanguoLevel, title: "随口", description: "一句到位" },
@@ -42,6 +46,22 @@ const LOADING_LINES = [
   "正在触发天意机制",
   "正在五秒崩",
 ];
+
+const FAITHFULNESS_TIERS = [
+  { min: 80, name: "原声" },
+  { min: 60, name: "入戏" },
+  { min: 40, name: "随性" },
+  { min: 20, name: "放飞" },
+  { min: 0, name: "脱缰" },
+];
+
+function getFaithfulnessLabel(value: number): string {
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  for (const tier of FAITHFULNESS_TIERS) {
+    if (v >= tier.min) return tier.name;
+  }
+  return "脱缰";
+}
 
 const GITHUB_URL = "https://github.com/Yuexiye/zhouli-translator";
 
@@ -192,6 +212,7 @@ function truncateForCanvas(
 
 export default function Home() {
   const [level, setLevel] = useState<XinsanguoLevel>("standard");
+  const [faithfulness, setFaithfulness] = useState<XinsanguoFaithfulness>(50);
   const [provider, setProvider] = useState<ProviderId>("demo");
   const [model, setModel] = useState("DeepSeek-V4-Flash");
   const [text, setText] = useState("");
@@ -251,7 +272,7 @@ export default function Home() {
     setCopied(false);
 
     if (provider === "demo") {
-      setResult(buildDemoResult(trimmed, level));
+      setResult(buildDemoResult(trimmed, level, faithfulness));
       setIsDemo(true);
       setDemoNotice(null);
       setRemaining(null);
@@ -273,6 +294,7 @@ export default function Home() {
           body: JSON.stringify({
             text: trimmed,
             level,
+            faithfulness,
             provider,
             model,
           }),
@@ -300,7 +322,7 @@ export default function Home() {
       }
     } catch (err) {
       // 连接失败（如静态部署无后端）→ 优雅降级为本地演示
-      setResult(buildDemoResult(trimmed, level));
+      setResult(buildDemoResult(trimmed, level, faithfulness));
       setIsDemo(true);
       setDemoNotice("当前为演示档（未连接翻译服务），真实翻译请在本地运行。");
       setRemaining(null);
@@ -406,7 +428,11 @@ export default function Home() {
     ctx.textAlign = "left";
     ctx.fillText("新三国台词翻译器 · XIN SAN GUO", 80, H - 96);
     ctx.textAlign = "right";
-    ctx.fillText(`新三国风 · ${selectedLevel.title}`, W - 80, H - 96);
+    ctx.fillText(
+      `新三国风 · ${selectedLevel.title} · ${getFaithfulnessLabel(faithfulness)}`,
+      W - 80,
+      H - 96,
+    );
 
     const url = canvas.toDataURL("image/png");
     const anchor = document.createElement("a");
@@ -537,6 +563,35 @@ export default function Home() {
             </div>
 
             <div className="divider">
+              <span>择其贴合</span>
+            </div>
+
+            <div className="level-field faithfulness-field">
+              <div>
+                <span className="field-title">原梗强度</span>
+                <span className="field-help">越高越贴近原剧台词，越低越放飞脑洞</span>
+              </div>
+              <div className="faithfulness-control">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={faithfulness}
+                  onChange={(event) => setFaithfulness(Number(event.target.value))}
+                  aria-label="原梗强度"
+                />
+                <div className="faithfulness-scale">
+                  <span>贴合原句</span>
+                  <span className="faithfulness-tier">
+                    {getFaithfulnessLabel(faithfulness)} · {faithfulness}
+                  </span>
+                  <span>脑洞崩坏</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="divider">
               <span>择其接口</span>
             </div>
 
@@ -618,7 +673,7 @@ export default function Home() {
               <div>
                 <span className="panel-label inverse">成言</span>
                 <span className="result-style">
-                  新三国风 · {selectedLevel.title}
+                  新三国风 · {selectedLevel.title} · {getFaithfulnessLabel(faithfulness)}
                 </span>
               </div>
                 <span className="result-seal" aria-hidden="true">

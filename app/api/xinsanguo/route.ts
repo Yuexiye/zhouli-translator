@@ -4,11 +4,24 @@ import {
   buildSystemPrompt,
   buildDemoResult,
   type XinsanguoLevel,
+  type XinsanguoFaithfulness,
 } from "@/lib/xinsanguo-prompt";
 
 export const runtime = "nodejs";
 
 const VALID_LEVELS = new Set<XinsanguoLevel>(["light", "standard", "grand"]);
+
+function normalizeFaithfulness(value: unknown): XinsanguoFaithfulness {
+  if (typeof value !== "number" || Number.isNaN(value)) return 50;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+// 强度越高越"贴近原剧台词"（更稳重、少发挥）→ 低温；越低越放飞 → 高温。
+function faithfulnessToTemperature(faithfulness: XinsanguoFaithfulness): number {
+  const clamped = Math.max(0, Math.min(100, faithfulness));
+  const temp = 1.0 - (clamped / 100) * 0.7;
+  return Number(temp.toFixed(2));
+}
 
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_WINDOW_LIMIT = 12;
@@ -219,6 +232,7 @@ export async function POST(request: NextRequest) {
   let body: {
     text?: unknown;
     level?: unknown;
+    faithfulness?: unknown;
     provider?: unknown;
     model?: unknown;
   };
@@ -245,6 +259,7 @@ export async function POST(request: NextRequest) {
   const level = VALID_LEVELS.has(body.level as XinsanguoLevel)
     ? (body.level as XinsanguoLevel)
     : "standard";
+  const faithfulness = normalizeFaithfulness(body.faithfulness);
   const key = getClientKey(request);
   const rate = checkRateLimit(key);
 
@@ -285,7 +300,7 @@ export async function POST(request: NextRequest) {
 
   if (provider.provider === "demo") {
     return NextResponse.json({
-      result: buildDemoResult(text, level),
+      result: buildDemoResult(text, level, faithfulness),
       model: provider.reason === "missing_openai_compatible_env" ? "本地演示" : "本地演示",
       demo: true,
       remaining: rate.remaining,
@@ -296,13 +311,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const maxTokens = level === "grand" ? 600 : 400;
+    const maxTokens = level === "grand" ? 1500 : 1200;
     const requestBody: Record<string, unknown> = {
       model: provider.model,
       messages: [
         {
           role: "system",
-          content: buildSystemPrompt(level),
+          content: buildSystemPrompt(level, faithfulness),
         },
         {
           role: "user",
@@ -310,11 +325,12 @@ export async function POST(request: NextRequest) {
         },
       ],
       max_tokens: maxTokens,
-      temperature: 0.8,
+      temperature: faithfulnessToTemperature(faithfulness),
       stream: false,
     };
-    // `thinking` 是 DeepSeek 专属参数，通用 OpenAI 兼容网关会拒绝它。
-    if (provider.provider === "deepseek") {
+    // 禁用思考链：DeepSeek 与多数 vLLM/New API 类兼容网关的 reasoning 模型需要此字段，
+    // 否则正文常为空（token 全花在 reasoning 上），导致翻译结果为空被长度校验拦截。
+    if (provider.provider === "deepseek" || provider.provider === "openai_compatible") {
       requestBody.thinking = { type: "disabled" };
     }
 
@@ -329,8 +345,13 @@ export async function POST(request: NextRequest) {
         requestBody,
       );
     } else {
+      // OpenAI 兼容网关标准路径为 /v1/chat/completions（如 New API 类网关）。
+      // 归一化 baseUrl：去掉尾部斜杠与多余的 /v1，统一补 /v1，避免拼成 /chat/completions 而 404。
+      const normalizedBase = provider.baseUrl
+        .replace(/\/+$/, "")
+        .replace(/\/v1$/, "");
       response = await fetchWithRetry(
-        `${provider.baseUrl.replace(/\/$/, "")}/chat/completions`,
+        `${normalizedBase}/v1/chat/completions`,
         {
           Authorization: `Bearer ${provider.apiKey}`,
           "Content-Type": "application/json",

@@ -935,6 +935,59 @@ main {
   box-shadow: 0 0 0 3px rgba(158, 50, 40, 0.06);
 }
 
+.faithfulness-field .faithfulness-control {
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faithfulness-control input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin: 7px 0;
+  border-radius: 999px;
+  background: rgba(118, 106, 72, 0.35);
+  outline: none;
+  cursor: pointer;
+}
+
+.faithfulness-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--paper-light);
+  box-shadow: 0 1px 4px rgba(51, 38, 25, 0.3);
+}
+
+.faithfulness-control input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--paper-light);
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 1px 4px rgba(51, 38, 25, 0.3);
+}
+
+.faithfulness-scale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ink-soft);
+  font: 600 10px/1 var(--serif);
+  letter-spacing: 0.06em;
+}
+
+.faithfulness-tier {
+  color: var(--red);
+  font-weight: 600;
+}
+
 .error-message {
   margin: 13px 0 -5px;
   color: var(--red);
@@ -2212,6 +2265,10 @@ footer > span,
   .level-field {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .faithfulness-field .faithfulness-control {
+    width: 100%;
   }
 
   .level-switch {
